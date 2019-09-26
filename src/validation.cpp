@@ -218,6 +218,7 @@ private:
 
 CCriticalSection cs_main;
 
+bool fCheckAfterSync = false;
 BlockMap& mapBlockIndex = g_chainstate.mapBlockIndex;
 CChain& chainActive = g_chainstate.chainActive;
 CBlockIndex *pindexBestHeader = nullptr;
@@ -566,6 +567,8 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                                      bool* pfMissingInputs, int64_t nAcceptTime, std::list<CTransactionRef>* plTxnReplaced,
                                      bool bypass_limits, const CAmount& nAbsurdFee, std::vector<COutPoint>& coins_to_uncache, bool test_accept)
 {
+    if (fCheckAfterSync) return true;
+
     const CTransaction& tx = *ptx;
     const uint256 hash = tx.GetHash();
     AssertLockHeld(cs_main);
@@ -1169,8 +1172,10 @@ bool IsInitialBlockDownload()
         return false;
 
     LOCK(cs_main);
-    if (latchToFalse.load(std::memory_order_relaxed))
+    if (latchToFalse.load(std::memory_order_relaxed)) {
+        fCheckAfterSync = true;
         return false;
+    }
     if (fImporting || fReindex)
         return true;
     if (chainActive.Tip() == nullptr)
@@ -2830,7 +2835,7 @@ bool CChainState::ActivateBestChain(CValidationState &state, const CChainParams&
         if (ShutdownRequested())
             break;
     } while (pindexNewTip != pindexMostWork);
-    CheckBlockIndex(chainparams.GetConsensus());
+    if (fCheckAfterSync) CheckBlockIndex(chainparams.GetConsensus());
 
     // Write changes periodically to disk, after relay.
     if (!FlushStateToDisk(chainparams, state, FlushStateMode::PERIODIC)) {
@@ -3206,10 +3211,6 @@ static bool FindUndoPos(CValidationState &state, int nFile, CDiskBlockPos &pos, 
 
 static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true)
 {
-    // Check proof of work matches claimed amount
-    if (fCheckPOW && !CheckProofOfWork(block.GetHash(), block.nBits, false, consensusParams))
-        return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "proof of work failed");
-
     return true;
 }
 
@@ -3635,7 +3636,7 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
     // Notify external listeners about accepted block header
     GetMainSignals().AcceptedBlockHeader(pindex);
 
-    CheckBlockIndex(chainparams.GetConsensus());
+    if (fCheckAfterSync) CheckBlockIndex(chainparams.GetConsensus());
 
     return true;
 }
@@ -3833,7 +3834,7 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
 
     FlushStateToDisk(chainparams, state, FlushStateMode::NONE);
 
-    CheckBlockIndex(chainparams.GetConsensus());
+    if (fCheckAfterSync) CheckBlockIndex(chainparams.GetConsensus());
 
     return true;
 }
@@ -4538,7 +4539,7 @@ bool CChainState::RewindBlockIndex(const CChainParams& params)
         // no tip due to chainActive being empty!
         PruneBlockIndexCandidates();
 
-        CheckBlockIndex(params.GetConsensus());
+        if (fCheckAfterSync) CheckBlockIndex(Params().GetConsensus());
     }
 
     return true;
