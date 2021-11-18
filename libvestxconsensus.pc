@@ -1,0 +1,11 @@
+prefix=/
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: VESTX consensus library
+Description: Library for the VESTX consensus protocol.
+Version: 17.1.0
+Libs: -L${libdir} -lvestxconsensus
+Cflags: -I${includedir}
+Requires.private: libcrypto
