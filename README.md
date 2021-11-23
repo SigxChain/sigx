@@ -1,4 +1,4 @@
-VESTX integration/staging tree
+SIGX integration/staging tree
 ==============================
 
 - built on bitcoin 0.17.1
@@ -8,10 +8,10 @@ VESTX integration/staging tree
 - pos and pow timing is set at 40 seconds
 - capable of 250tps peak
 - coin schedule set for coinswap from older vestx (2:1 @ 20bn),
-  - blocks 1 - 25,000 : 5000 VESTX
-  - blocks 25,000 -   : 1000 VESTX
-- masternode collateral is 15,000,000 VESTX
+  - blocks 1 - 25,000 : 5000 SIGX
+  - blocks 25,000 -   : 1000 SIGX
+- masternode collateral is 15,000,000 SIGX
 - masternode / miner/minting split is 60/40%
 
-migration to bitcoin 0.18 already underway..
+
 
